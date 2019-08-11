@@ -1,6 +1,6 @@
-precision highp float;
-precision highp int;
-precision highp sampler2D;
+precision mediump float;
+precision mediump int;
+precision mediump sampler2D;
 
 uniform sampler2D u_gpuSortedObjects;
 

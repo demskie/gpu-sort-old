@@ -1,10 +1,10 @@
-precision highp float;
-precision highp int;
-precision highp sampler2D;
+precision mediump float;
+precision mediump int;
+precision mediump sampler2D;
 
 uniform sampler2D u_gpuSortedObjects;
 
-const float GPU_SORTED_OBJECTS_WIDTH = 1024.0;
+const float GPU_SORTED_OBJECTS_WIDTH = ${textureWidth};
 
 float round(float f) { return floor(f + 0.5); }
 float floatEquals(float f1, float f2) { return 1.0 - abs(sign(f1 - f2)); }

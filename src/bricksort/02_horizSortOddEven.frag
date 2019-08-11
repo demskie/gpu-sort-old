@@ -1,6 +1,6 @@
-precision highp float;
-precision highp int;
-precision highp sampler2D;
+precision mediump float;
+precision mediump int;
+precision mediump sampler2D;
 
 uniform sampler2D u_gpuSortedObjects;
 
@@ -20,33 +20,33 @@ float packBooleans(bool arr[8]) { float f = float(int(arr[7])) * 128.0; f += flo
 vec2 addToVec2(vec2 v, float f, float w) { v.y += floor((v.x + f) / w); v.x = mod(v.x + f, w); return v; }
 
 void main() {
-	// determine if we're outputting to one of the top side texels
-	float outputToOddBool = floatEquals(mod(floor(gl_FragCoord.y), 2.0), 1.0);
+	// determine if we're outputting to one of the left side texels
+	float outputToOddBool = floatEquals(mod(floor(gl_FragCoord.x), 2.0), 1.0);
 
 	// calculate coordinates
-	vec2 oddFragCoord = vec2(gl_FragCoord.x, gl_FragCoord.y - floatEquals(outputToOddBool, 0.0));
-	vec2 evenFragCoord = vec2(oddFragCoord.x, oddFragCoord.y + 1.0);
+	vec2 oddFragCoord = vec2(gl_FragCoord.x - floatEquals(outputToOddBool, 0.0), gl_FragCoord.y);
+	vec2 evenFragCoord = vec2(oddFragCoord.x + 1.0, oddFragCoord.y);
 
 	// constrain for (literal) edge case
-	oddFragCoord.y = clamp(oddFragCoord.y, 0.5, GPU_SORTED_OBJECTS_WIDTH - 0.5);
-	evenFragCoord.y = clamp(evenFragCoord.y, 0.5, GPU_SORTED_OBJECTS_WIDTH - 0.5);
+	oddFragCoord.x = clamp(oddFragCoord.x, 0.5, GPU_SORTED_OBJECTS_WIDTH - 0.5);
+	evenFragCoord.x = clamp(evenFragCoord.x, 0.5, GPU_SORTED_OBJECTS_WIDTH - 0.5);
 
 	// get texels
 	vec4 oddTexel = texture2D(u_gpuSortedObjects, oddFragCoord / GPU_SORTED_OBJECTS_WIDTH);
 	vec4 evenTexel = texture2D(u_gpuSortedObjects, evenFragCoord / GPU_SORTED_OBJECTS_WIDTH);
 	
 	// unpack pixel position data
-	float oddY = vec2ToInt16(oddTexel.ba);
-	float evenY = vec2ToInt16(evenTexel.ba);
+	float oddX = vec2ToInt16(oddTexel.rg);
+	float evenX = vec2ToInt16(evenTexel.rg);
 	
 	// start creating coordinates for source texel
 	vec2 sourceFragCoord = vec2(gl_FragCoord.xy);
 
 	// add to coordinates if (even_position_comes_before && we_are_odd)
-	sourceFragCoord.y += floatLessThan(evenY, oddY) * outputToOddBool;
+	sourceFragCoord.x += floatLessThan(evenX, oddX) * outputToOddBool;
 
 	// subtract to coordinates if (even_position_comes_before && we_are_even)
-	sourceFragCoord.y -= floatLessThan(evenY, oddY) * floatEquals(outputToOddBool, 0.0);
+	sourceFragCoord.x -= floatLessThan(evenX, oddX) * floatEquals(outputToOddBool, 0.0);
 	
 	// return the source texel
 	gl_FragColor = texture2D(u_gpuSortedObjects, sourceFragCoord / GPU_SORTED_OBJECTS_WIDTH);
