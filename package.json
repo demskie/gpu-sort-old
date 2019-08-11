@@ -1,0 +1,15 @@
+{
+	"name": "gpu-bitonic-sort",
+	"version": "0.0.1",
+	"description": "testing bitonic sort on node.js ",
+	"main": "index.js",
+	"scripts": {
+		"execute": "tsc && node build/index.js"
+	},
+	"dependencies": {
+		"@types/node": "^12.7.1",
+		"gpu-compute": "0.0.19",
+		"twgl.js": "^4.11.0",
+		"typescript": "^3.5.3"
+	}
+}
