@@ -1,0 +1,7 @@
+two variables as input:
+	- wireLength
+		distance from other pixel
+	- groupSize
+		every other group changes direction of sorting
+
+https://play.golang.org/p/sx_sONREk7T
