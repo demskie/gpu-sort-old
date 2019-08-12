@@ -3,7 +3,7 @@ precision mediump int;
 precision mediump sampler2D;
 
 uniform sampler2D u_indices;
-uniform sampler2D u_firstFourBytes;
+uniform sampler2D u_firstByteSlice;
 
 uniform float u_wireLength;
 uniform float u_groupSize;
@@ -28,18 +28,52 @@ void main() {
 
 	// get booleans for determining relative position and sorting order
 	float xCoord = floor(currentLookupCoord.x);
-	float firstPeerBool = floatLessThan(mod(xCoord, (2.0 * u_wireLength)), u_wireLength);
+	float firstTexelBool = floatLessThan(mod(xCoord, (2.0 * u_wireLength)), u_wireLength);
 	float ascendingGroupBool = floatEquals(mod(((xCoord - mod(xCoord, u_groupSize)) / u_groupSize), 2.0), 0.0);
 
 	// calculate peer fragCoord
 	vec2 peerFragCoord = vec2(gl_FragCoord.xy);
-	addToVec2(peerFragCoord, u_wireLength * firstPeerBool, TEXTURE_WIDTH);
-	addToVec2(peerFragCoord, -1.0 * u_wireLength * floatEquals(firstPeerBool, 0.0), TEXTURE_WIDTH);
+	addToVec2(peerFragCoord, u_wireLength * firstTexelBool, TEXTURE_WIDTH);
+	addToVec2(peerFragCoord, -1.0 * u_wireLength * floatEquals(firstTexelBool, 0.0), TEXTURE_WIDTH);
 
 	// get peer lookup coordinates
 	vec4 peerLookupTexel = texture2D(u_indices, peerFragCoord.xy / TEXTURE_WIDTH);
-	vec2 peerLookupCoord = vec2(vec2ToInt16(peerLookupTexel.rg) + 0.5, 
+	vec2 peerLookupCoord = vec2(vec2ToInt16(peerLookupTexel.rg) + 0.5,
 								vec2ToInt16(peerLookupTexel.ba) + 0.5);
 
-	// TODO
+	// start creating alpha and bravo coordinates where alpha is expected to be less than bravo
+	vec2 alphaLookupCoord = floatEquals(firstTexelBool, 1.0) * floatEquals(ascendingGroupBool, 1.0) * vec2(currentLookupCoord.xy)
+						  + floatEquals(firstTexelBool, 1.0) * floatEquals(ascendingGroupBool, 0.0) * vec2(peerLookupCoord.xy)
+						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 1.0)	* vec2(peerLookupCoord.xy)
+						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 0.0)	* vec2(currentLookupCoord.xy)
+	vec2 bravoLookupCoord = floatEquals(firstTexelBool, 1.0) * floatEquals(ascendingGroupBool, 1.0) * vec2(peerLookupCoord.xy)
+						  +	floatEquals(firstTexelBool, 1.0) * floatEquals(ascendingGroupBool, 0.0) * vec2(currentLookupCoord.xy)
+						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 1.0)	* vec2(currentLookupCoord.xy)
+						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 0.0)	* vec2(peerLookupCoord.xy)			
+
+	// get data for comparison
+	vec4 alphaData = texture2D(u_firstByteSlice, alphaLookupCoord.xy / TEXTURE_WIDTH);
+	vec4 bravoData = texture2D(u_firstByteSlice, bravoLookupCoord.xy / TEXTURE_WIDTH);
+
+	// initializing booleans to false
+	float finishedBool = 0.0;
+	float shouldSwapBool = 0.0;
+
+	// if (finishedBool == false && alphaData < bravoData) finishedBool++
+	finishedBool += floatEquals(finishedBool, 0.0) * floatLessThan(alphaData.r, bravoData.r);
+	finishedBool += floatEquals(finishedBool, 0.0) * floatLessThan(alphaData.g, bravoData.g);
+	finishedBool += floatEquals(finishedBool, 0.0) * floatLessThan(alphaData.b, bravoData.b);
+	finishedBool += floatEquals(finishedBool, 0.0) * floatLessThan(alphaData.a, bravoData.a);
+	
+	// if (finishedBool == false && shouldSwapBool == false && alphaData > peerData) shouldSwap++
+	shouldSwapBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 0.0) * floatGreaterThan(alphaData.r, bravoData.r);
+	shouldSwapBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 0.0) * floatGreaterThan(alphaData.g, bravoData.g);
+	shouldSwapBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 0.0) * floatGreaterThan(alphaData.b, bravoData.b);
+	shouldSwapBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 0.0) * floatGreaterThan(alphaData.a, bravoData.a);
+	
+	// if (finishedBool == false && shouldSwapBool == true) finishedBool++
+	finishedBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 1.0);
+
+	// swap lookup texel if shouldSwapBool == true
+	gl_FragColor = shouldSwapBool * peerLookupTexel + floatEquals(shouldSwapBool, 0.0) * currentLookupTexel;
 }
