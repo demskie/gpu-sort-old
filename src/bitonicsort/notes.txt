@@ -5,3 +5,40 @@ two variables as input:
 		every other group changes direction of sorting
 
 https://play.golang.org/p/sx_sONREk7T
+
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	wireLength, groupSize := 2, 4
+	for i := 0; i < 16; i++ {
+		getOtherIndex(i, wireLength, groupSize)
+	}
+	
+}
+
+func getOtherIndex(index, wireLength, groupSize int) {
+	isBlueGroup := (((index - (index % groupSize)) / groupSize) % 2) == 0
+	isFirstPeer := (index % (wireLength * 2)) < wireLength
+	fmt.Printf("%v:\t%v\t%v\n", index, isBlueGroup, isFirstPeer)
+}
+
+// 0:	true	true
+// 1:	true	true
+// 2:	true	false
+// 3:	true	false
+// 4:	false	true
+// 5:	false	true
+// 6:	false	false
+// 7:	false	false
+// 8:	true	true
+// 9:	true	true
+// 10:	true	false
+// 11:	true	false
+// 12:	false	true
+// 13:	false	true
+// 14:	false	false
+// 15:	false	false
