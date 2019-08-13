@@ -47,11 +47,11 @@ void main() {
 	vec2 alphaLookupCoord = floatEquals(firstTexelBool, 1.0) * floatEquals(ascendingGroupBool, 1.0) * vec2(currentLookupCoord.xy)
 						  + floatEquals(firstTexelBool, 1.0) * floatEquals(ascendingGroupBool, 0.0) * vec2(peerLookupCoord.xy)
 						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 1.0)	* vec2(peerLookupCoord.xy)
-						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 0.0)	* vec2(currentLookupCoord.xy)
+						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 0.0)	* vec2(currentLookupCoord.xy);
 	vec2 bravoLookupCoord = floatEquals(firstTexelBool, 1.0) * floatEquals(ascendingGroupBool, 1.0) * vec2(peerLookupCoord.xy)
 						  +	floatEquals(firstTexelBool, 1.0) * floatEquals(ascendingGroupBool, 0.0) * vec2(currentLookupCoord.xy)
 						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 1.0)	* vec2(currentLookupCoord.xy)
-						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 0.0)	* vec2(peerLookupCoord.xy)			
+						  +	floatEquals(firstTexelBool, 0.0) * floatEquals(ascendingGroupBool, 0.0)	* vec2(peerLookupCoord.xy);
 
 	// get data for comparison
 	vec4 alphaData[3] = vec4[](texture2D(u_firstByteSlice, alphaLookupCoord.xy / TEXTURE_WIDTH),
