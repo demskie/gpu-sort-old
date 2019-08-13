@@ -1,13 +1,13 @@
 import * as gpu from "gpu-compute";
-import { uniformInt32Range } from "../NotRandom";
+import { uniformInt32Range } from "../lib/notrandom";
 
 export function brickSort() {
 	const textureWidth = 4096;
 
-	const horizSortEvenOdd = require("fs").readFileSync("src/BrickSort/01_horizSortEvenOdd.frag", "utf8");
-	const horizSortOddEven = require("fs").readFileSync("src/BrickSort/02_horizSortOddEven.frag", "utf8");
-	const vertSortEvenOdd = require("fs").readFileSync("src/BrickSort/03_vertSortEvenOdd.frag", "utf8");
-	const vertSortOddEven = require("fs").readFileSync("src/BrickSort/04_vertSortOddEven.frag", "utf8");
+	const horizSortEvenOdd = require("fs").readFileSync("src/bricksort/01_horizSortEvenOdd.frag", "utf8");
+	const horizSortOddEven = require("fs").readFileSync("src/bricksort/02_horizSortOddEven.frag", "utf8");
+	const vertSortEvenOdd = require("fs").readFileSync("src/bricksort/03_vertSortEvenOdd.frag", "utf8");
+	const vertSortOddEven = require("fs").readFileSync("src/bricksort/04_vertSortOddEven.frag", "utf8");
 
 	const renderTarget = new gpu.RenderTarget(textureWidth);
 	const fragVariables = { textureWidth: `${textureWidth}.0` };
