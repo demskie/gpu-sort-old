@@ -5,8 +5,10 @@ precision mediump sampler2D;
 uniform sampler2D u_indices;
 uniform sampler2D u_firstByteSlice;
 
-uniform float u_wireLength;
-uniform float u_groupSize;
+uniform float u_wireLengthX;
+uniform float u_wireLengthY;
+uniform float u_groupSizeX;
+uniform float u_groupSizeY;
 
 const float TEXTURE_WIDTH = ${textureWidth};
 
@@ -26,15 +28,24 @@ void main() {
 	vec2 currentLookupCoord = vec2(vec2ToInt16(currentLookupTexel.rg) + 0.5, 
 								   vec2ToInt16(currentLookupTexel.ba) + 0.5);
 
+	// ascendingStartCoord
+	vec2 ascendingStartCoord = vec2(mod(floor(gl_FragCoord.x), u_groupSizeX * 2.0) + 0.5,
+									mod(floor(gl_FragCoord.y), u_groupSizeY * 2.0) + 0.5);
+	vec2 descendingStartCoord = vec2(ascendingStartCoord.x + u_groupSizeX,
+									 ascendingStartCoord.y + u_groupSizeY);
+
 	// get booleans for determining relative position and sorting order
-	float xCoord = floor(currentLookupCoord.x);
-	float firstTexelBool = floatLessThan(mod(xCoord, (2.0 * u_wireLength)), u_wireLength);
-	float ascendingGroupBool = floatEquals(mod(((xCoord - mod(xCoord, u_groupSize)) / u_groupSize), 2.0), 0.0);
+	float firstTexelBool = floatLessThanOrEqual(gl_FragCoord.x, mod(floor(gl_FragCoord.x), u_groupSizeX) + (u_groupSizeX / 2.0) + 0.5) *
+						   floatLessThanOrEqual(gl_FragCoord.y, mod(floor(gl_FragCoord.y), u_groupSizeY) + (u_groupSizeY / 2.0) + 0.5);
+	float ascendingGroupBool = floatLessThan(gl_FragCoord.x, descendingStartCoord.x) * 
+							   floatLessThan(gl_FragCoord.y, descendingStartCoord.y);
 
 	// calculate peer fragCoord
 	vec2 peerFragCoord = vec2(gl_FragCoord.xy);
-	addToVec2(peerFragCoord, u_wireLength * firstTexelBool, TEXTURE_WIDTH);
-	addToVec2(peerFragCoord, -1.0 * u_wireLength * floatEquals(firstTexelBool, 0.0), TEXTURE_WIDTH);
+	peerFragCoord.x += firstTexelBool * u_wireLengthX;
+	peerFragCoord.y += firstTexelBool * u_wireLengthY;
+	peerFragCoord.x -= floatEquals(firstTexelBool, 0.0) * u_wireLengthX;
+	peerFragCoord.y -= floatEquals(firstTexelBool, 0.0) * u_wireLengthY;
 
 	// get peer lookup coordinates
 	vec4 peerLookupTexel = texture2D(u_indices, peerFragCoord.xy / TEXTURE_WIDTH);
