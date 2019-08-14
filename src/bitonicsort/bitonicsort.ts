@@ -6,6 +6,8 @@ export function bitonicSort() {
 
 	const bitonicSortSource = require("fs").readFileSync("src/bitonicsort/032_bitonicSort.frag", "utf8");
 
+	let start = Date.now();
+
 	const indices = new gpu.RenderTarget(textureWidth);
 	const firstByteSlice = new gpu.RenderTarget(textureWidth);
 	const fragVariables = { textureWidth: `${textureWidth}.0` };
@@ -15,26 +17,36 @@ export function bitonicSort() {
 
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {
-		bytes[i] = i / 4;
+		var arrAlpha = gpu.packInt16(uniformInt32Range(i + 0, 0, gpu.MAX_INT16));
+		var arrBravo = gpu.packInt16(uniformInt32Range(i + 1, 0, gpu.MAX_INT16));
+		bytes[i + 0] = arrAlpha[0];
+		bytes[i + 1] = arrAlpha[1];
+		bytes[i + 2] = arrBravo[0];
+		bytes[i + 3] = arrBravo[1];
 	}
 	firstByteSlice.pushTextureData(bytes);
 
-	let start = Date.now();
-	for (var i = 0; i < 10; i++) {
+	const bitonicUniforms = calculateBitonicUniforms(textureWidth);
+	for (var uniforms of bitonicUniforms) {
 		indices.compute(computeShader, {
 			u_indices: indices,
-			u_firstByteSlice: firstByteSlice
+			u_firstByteSlice: firstByteSlice,
+			u_wireLength: uniforms.wireLength,
+			u_groupSize: uniforms.groupSize
 		});
-		break;
 	}
-	console.log(unpackIndices(indices.readPixels()));
+
+	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);
+	console.log(unpackInt16Pairs(indices.readPixels()));
+	console.log(unpackInt16Pairs(firstByteSlice.readPixels()));
 }
 
 function createIndices(textureWidth: number) {
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {
-		var xArr = gpu.packInt16(i % textureWidth);
-		var yArr = gpu.packInt16(i / textureWidth);
+		var index = Math.floor(i / 4);
+		var xArr = gpu.packInt16(Math.floor(index / textureWidth));
+		var yArr = gpu.packInt16(Math.floor(index % textureWidth));
 		bytes[i + 0] = xArr[0];
 		bytes[i + 1] = xArr[1];
 		bytes[i + 2] = yArr[0];
@@ -43,10 +55,28 @@ function createIndices(textureWidth: number) {
 	return bytes;
 }
 
-function unpackIndices(bytes: Uint8Array) {
+function unpackInt16Pairs(bytes: Uint8Array) {
 	const arr = [];
 	for (var i = 0; i < bytes.length; i += 4) {
 		arr.push([gpu.unpackInt16(bytes[i + 0], bytes[i + 1]), gpu.unpackInt16(bytes[i + 2], bytes[i + 3])]);
+	}
+	return arr;
+}
+
+interface bitonicUniforms {
+	groupSize: number;
+	wireLength: number;
+}
+
+function calculateBitonicUniforms(width: number) {
+	const arr = [] as bitonicUniforms[];
+	for (var gs = 2; gs <= width * width; gs *= 2) {
+		for (var wl = gs / 2; wl >= 1; wl /= 2) {
+			arr.push({
+				groupSize: gs,
+				wireLength: wl
+			});
+		}
 	}
 	return arr;
 }
