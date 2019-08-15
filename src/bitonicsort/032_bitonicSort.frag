@@ -35,15 +35,15 @@ void main() {
 	vec2 descendingStartCoord = vec2(ascendingStartCoord.x + u_regionSizeX / 2.0,
 									 ascendingStartCoord.y + u_regionSizeY / 2.0);
 
-	gl_FragColor = vec4(int16ToVec2(ascendingStartCoord.x), int16ToVec2(ascendingStartCoord.y));
-
 	// get booleans for determining relative position and sorting order
 	float ascendingGroupBool = floatLessThan(floor(gl_FragCoord.x), floor(descendingStartCoord.x)) * 
 							   floatLessThan(floor(gl_FragCoord.y), floor(descendingStartCoord.y));
-	vec2 middleStartCoord = (floatEquals(ascendingGroupBool, 1.0) * vec2(ascendingStartCoord.x + u_regionSizeX / 4.0, ascendingStartCoord.y + u_regionSizeY / 4.0)) +
-	                        (floatEquals(ascendingGroupBool, 0.0) * vec2(descendingStartCoord.x + u_regionSizeX / 4.0, descendingStartCoord.y + u_regionSizeY / 4.0));
-	float firstTexelBool = floatLessThan(floor(gl_FragCoord.x), floor(middleStartCoord.x)) * 
-						   floatLessThan(floor(gl_FragCoord.y), floor(middleStartCoord.y));
+	vec2 middleStartCoord = (floatEquals(ascendingGroupBool, 1.0) * vec2(ascendingStartCoord.x + floor(u_regionSizeX / 4.0), ascendingStartCoord.y + floor(u_regionSizeY / 4.0))) +
+	                        (floatEquals(ascendingGroupBool, 0.0) * vec2(descendingStartCoord.x + floor(u_regionSizeX / 4.0), descendingStartCoord.y + floor(u_regionSizeY / 4.0)));
+	float firstTexelBool = floatLessThan(floor(gl_FragCoord.x), floor(middleStartCoord.x)) *
+						   floatLessThanOrEqual(floor(gl_FragCoord.y), floor(middleStartCoord.y));
+
+	gl_FragColor = vec4(int16ToVec2(ascendingGroupBool), int16ToVec2(firstTexelBool));
 
 	// calculate peer fragCoord
 	vec2 peerFragCoord = vec2(gl_FragCoord.xy);
