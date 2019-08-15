@@ -7,8 +7,8 @@ uniform sampler2D u_firstByteSlice;
 
 uniform float u_wireLengthX;
 uniform float u_wireLengthY;
-uniform float u_groupSizeX;
-uniform float u_groupSizeY;
+uniform float u_regionSizeX;
+uniform float u_regionSizeY;
 
 const float TEXTURE_WIDTH = ${textureWidth};
 
@@ -28,22 +28,24 @@ void main() {
 	vec2 currentLookupCoord = vec2(vec2ToInt16(currentLookupTexel.rg) + 0.5, 
 								   vec2ToInt16(currentLookupTexel.ba) + 0.5);
 
-	// ascendingStartCoord
-	vec2 ascendingStartCoord = vec2(mod(floor(gl_FragCoord.x), u_groupSizeX * 2.0) + 0.5,
-									mod(floor(gl_FragCoord.y), u_groupSizeY * 2.0) + 0.5);
-	vec2 descendingStartCoord = vec2(ascendingStartCoord.x + u_groupSizeX,
-									 ascendingStartCoord.y + u_groupSizeY);
+	// calculate starting coordinates for each sorting behavior
+	vec2 ascendingStartCoord = vec2(gl_FragCoord.x - mod(floor(gl_FragCoord.x), u_regionSizeX),
+									gl_FragCoord.y - mod(floor(gl_FragCoord.y), u_regionSizeY));
+	vec2 descendingStartCoord = vec2(ascendingStartCoord.x + u_regionSizeX / 2.0,
+									 ascendingStartCoord.y + u_regionSizeY / 2.0);
 
 	// get booleans for determining relative position and sorting order
-	float firstTexelBool = floatLessThanOrEqual(gl_FragCoord.x, mod(floor(gl_FragCoord.x), u_groupSizeX) + (u_groupSizeX / 2.0) + 0.5) *
-						   floatLessThanOrEqual(gl_FragCoord.y, mod(floor(gl_FragCoord.y), u_groupSizeY) + (u_groupSizeY / 2.0) + 0.5);
-	float ascendingGroupBool = floatLessThan(gl_FragCoord.x, descendingStartCoord.x) * 
-							   floatLessThan(gl_FragCoord.y, descendingStartCoord.y);
+	float ascendingGroupBool = floatLessThan(floor(gl_FragCoord.x), floor(descendingStartCoord.x)) * 
+							   floatLessThan(floor(gl_FragCoord.y), floor(descendingStartCoord.y));
+	vec2 middleStartCoord = (floatEquals(ascendingGroupBool, 1.0) * vec2(ascendingStartCoord.x + u_regionSizeX / 4.0, ascendingStartCoord.y + u_regionSizeY / 4.0)) +
+	                        (floatEquals(ascendingGroupBool, 0.0) * vec2(descendingStartCoord.x + u_regionSizeX / 4.0, descendingStartCoord.y + u_regionSizeY / 4.0));
+	float firstTexelBool = floatLessThan(floor(gl_FragCoord.x), floor(middleStartCoord.x)) * 
+						   floatLessThan(floor(gl_FragCoord.y), floor(middleStartCoord.y));
 
 	// calculate peer fragCoord
 	vec2 peerFragCoord = vec2(gl_FragCoord.xy);
-	peerFragCoord.x += firstTexelBool * u_wireLengthX;
-	peerFragCoord.y += firstTexelBool * u_wireLengthY;
+	peerFragCoord.x += floatEquals(firstTexelBool, 1.0) * u_wireLengthX;
+	peerFragCoord.y += floatEquals(firstTexelBool, 1.0) * u_wireLengthY;
 	peerFragCoord.x -= floatEquals(firstTexelBool, 0.0) * u_wireLengthX;
 	peerFragCoord.y -= floatEquals(firstTexelBool, 0.0) * u_wireLengthY;
 
@@ -67,24 +69,23 @@ void main() {
 	vec4 bravoData = texture2D(u_firstByteSlice, bravoLookupCoord.xy / TEXTURE_WIDTH);
 
 	// initializing booleans to false
-	float finishedBool = 0.0;
-	float shouldSwapBool = 0.0;
+	float swapBool = 0.0;
+	float notSwapBool = 0.0;
 
-	// if (finishedBool == false && alphaData < bravoData) finishedBool++
-	finishedBool += floatEquals(finishedBool, 0.0) * floatLessThan(alphaData.r, bravoData.r);
-	finishedBool += floatEquals(finishedBool, 0.0) * floatLessThan(alphaData.g, bravoData.g);
-	finishedBool += floatEquals(finishedBool, 0.0) * floatLessThan(alphaData.b, bravoData.b);
-	finishedBool += floatEquals(finishedBool, 0.0) * floatLessThan(alphaData.a, bravoData.a);
-	
-	// if (finishedBool == false && shouldSwapBool == false && alphaData > peerData) shouldSwap++
-	shouldSwapBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 0.0) * floatGreaterThan(alphaData.r, bravoData.r);
-	shouldSwapBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 0.0) * floatGreaterThan(alphaData.g, bravoData.g);
-	shouldSwapBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 0.0) * floatGreaterThan(alphaData.b, bravoData.b);
-	shouldSwapBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 0.0) * floatGreaterThan(alphaData.a, bravoData.a);
-	
-	// if (finishedBool == false && shouldSwapBool == true) finishedBool++
-	finishedBool += floatEquals(finishedBool, 0.0) * floatEquals(shouldSwapBool, 1.0);
+	// compare each byte in order to determine if swap is necessary
+	swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(alphaData.r, bravoData.r);
+	notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(alphaData.r, bravoData.r);
+	swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(alphaData.g, bravoData.g);
+	notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(alphaData.g, bravoData.g);
+	swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(alphaData.b, bravoData.b);
+	notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(alphaData.b, bravoData.b);
+	swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(alphaData.a, bravoData.a);
+	notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(alphaData.a, bravoData.a);
 
-	// swap lookup texel if shouldSwapBool == true
-	gl_FragColor = shouldSwapBool * peerLookupTexel + floatEquals(shouldSwapBool, 0.0) * currentLookupTexel;
+	// handle edge case where bytes are identical and thus both booleans are false
+	notSwapBool += floatEquals(notSwapBool, 0.0) * floatEquals(swapBool, 0.0);
+
+	// use booleans to render the correct lookup texel
+	gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
+				 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
 }
