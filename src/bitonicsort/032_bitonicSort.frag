@@ -20,19 +20,22 @@ float floatGreaterThan(float f1, float f2) { return max(sign(f1 - f2), 0.0); }
 float floatLessThanOrEqual(float f1, float f2) { return 1.0 - floatGreaterThan(f1, f2); }
 float floatGreaterThanOrEqual(float f1, float f2) { return 1.0 - floatLessThan(f1, f2); }
 float vec2ToInt16(vec2 v) { return clamp(floor(floor(v.r * 255.0) * 256.0) + floor(v.g * 255.0) - 32767.0, -32767.0, 32768.0); }
+vec2 int16ToVec2(float f) { f = clamp(f, -32767.0, 32768.0) + 32767.0; return vec2(floor(f / 256.0), f - floor(f / 256.0) * 256.0) / 255.0; }
 vec2 addToVec2(vec2 v, float f, float w) { v.y += floor((v.x + f) / w); v.x = mod(v.x + f, w); return v; }
 
 void main() {
 	// get current lookup coordinates
 	vec4 currentLookupTexel = texture2D(u_indices, gl_FragCoord.xy / TEXTURE_WIDTH);
-	vec2 currentLookupCoord = vec2(vec2ToInt16(currentLookupTexel.rg) + 0.5, 
+	vec2 currentLookupCoord = vec2(vec2ToInt16(currentLookupTexel.rg) + 0.5,
 								   vec2ToInt16(currentLookupTexel.ba) + 0.5);
 
 	// calculate starting coordinates for each sorting behavior
-	vec2 ascendingStartCoord = vec2(gl_FragCoord.x - mod(floor(gl_FragCoord.x), u_regionSizeX),
-									gl_FragCoord.y - mod(floor(gl_FragCoord.y), u_regionSizeY));
+	vec2 ascendingStartCoord = vec2(gl_FragCoord.x - floor(mod(floor(gl_FragCoord.x), u_regionSizeX)),
+									gl_FragCoord.y - floor(mod(floor(gl_FragCoord.y), u_regionSizeY)));
 	vec2 descendingStartCoord = vec2(ascendingStartCoord.x + u_regionSizeX / 2.0,
 									 ascendingStartCoord.y + u_regionSizeY / 2.0);
+
+	gl_FragColor = vec4(int16ToVec2(ascendingStartCoord.x), int16ToVec2(ascendingStartCoord.y));
 
 	// get booleans for determining relative position and sorting order
 	float ascendingGroupBool = floatLessThan(floor(gl_FragCoord.x), floor(descendingStartCoord.x)) * 
@@ -86,6 +89,8 @@ void main() {
 	notSwapBool += floatEquals(notSwapBool, 0.0) * floatEquals(swapBool, 0.0);
 
 	// use booleans to render the correct lookup texel
-	gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
-				 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
+	// gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
+	// 			 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
+
+	
 }

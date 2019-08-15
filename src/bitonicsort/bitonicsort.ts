@@ -17,21 +17,13 @@ export function bitonicSort() {
 
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {
-		// var arrAlpha = gpu.packInt16(uniformInt32Range(i + 0, 0, gpu.MAX_INT16));
-		// var arrBravo = gpu.packInt16(uniformInt32Range(i + 1, 0, gpu.MAX_INT16));
-		// bytes[i + 0] = arrAlpha[0];
-		// bytes[i + 1] = arrAlpha[1];
-		// bytes[i + 2] = arrBravo[0];
-		// bytes[i + 3] = arrBravo[1];
 		bytes[i + 0] = 255 - i;
 	}
 	firstByteSlice.pushTextureData(bytes);
 
 	const bitonicUniforms = calculateBitonicUniforms(textureWidth);
-	return console.log(bitonicUniforms);
-
+	console.log(bitonicUniforms);
 	for (var uniforms of bitonicUniforms) {
-		// console.log(uniforms);
 		indices.compute(computeShader, {
 			u_indices: indices,
 			u_firstByteSlice: firstByteSlice,
@@ -45,7 +37,7 @@ export function bitonicSort() {
 
 	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);
 	console.log(unpackInt16Pairs(indices.readPixels()));
-	console.log(unpackInt16Pairs(firstByteSlice.readPixels()));
+	// console.log(unpackInt16Pairs(firstByteSlice.readPixels()));
 }
 
 function createIndices(textureWidth: number) {
@@ -85,8 +77,8 @@ function calculateBitonicUniforms(width: number) {
 			arr.push({
 				wireLengthX: Math.floor(wl % width),
 				wireLengthY: Math.floor(wl / width),
-				regionSizeX: Math.floor(rs % width),
-				regionSizeY: Math.floor(rs / width)
+				regionSizeX: Math.floor(rs % width) > 0 ? Math.floor(rs % width) : width,
+				regionSizeY: Math.max(Math.floor(rs / width), 1)
 			});
 		}
 	}
