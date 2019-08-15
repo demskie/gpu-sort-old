@@ -28,29 +28,32 @@ export function bitonicSort() {
 	firstByteSlice.pushTextureData(bytes);
 
 	const bitonicUniforms = calculateBitonicUniforms(textureWidth);
-	return debugBooleans(textureWidth, bitonicUniforms);
+	return console.log(bitonicUniforms);
 
 	for (var uniforms of bitonicUniforms) {
-		console.log(uniforms);
+		// console.log(uniforms);
 		indices.compute(computeShader, {
 			u_indices: indices,
 			u_firstByteSlice: firstByteSlice,
-			u_wireLength: uniforms.wireLength,
-			u_groupSize: uniforms.groupSize
+			u_wireLengthX: uniforms.wireLengthX,
+			u_wireLengthY: uniforms.wireLengthY,
+			u_regionSizeX: uniforms.regionSizeX,
+			u_regionSizeY: uniforms.regionSizeY
 		});
+		break;
 	}
 
 	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);
-	// console.log(unpackInt16Pairs(indices.readPixels()));
-	// console.log(unpackInt16Pairs(firstByteSlice.readPixels()));
+	console.log(unpackInt16Pairs(indices.readPixels()));
+	console.log(unpackInt16Pairs(firstByteSlice.readPixels()));
 }
 
 function createIndices(textureWidth: number) {
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {
 		var index = Math.floor(i / 4);
-		var xArr = gpu.packInt16(Math.floor(index / textureWidth));
-		var yArr = gpu.packInt16(Math.floor(index % textureWidth));
+		var xArr = gpu.packInt16(Math.floor(index % textureWidth));
+		var yArr = gpu.packInt16(Math.floor(index / textureWidth));
 		bytes[i + 0] = xArr[0];
 		bytes[i + 1] = xArr[1];
 		bytes[i + 2] = yArr[0];
@@ -68,32 +71,24 @@ function unpackInt16Pairs(bytes: Uint8Array) {
 }
 
 interface bitonicUniforms {
-	groupSize: number;
-	wireLength: number;
+	wireLengthX: number;
+	wireLengthY: number;
+	regionSizeX: number;
+	regionSizeY: number;
 }
 
 function calculateBitonicUniforms(width: number) {
 	const arr = [] as bitonicUniforms[];
-	for (var gs = 2; gs <= width * width; gs *= 2) {
-		for (var wl = gs / 2; wl >= 1; wl /= 2) {
+	for (var rs = 4; rs <= 2 * width * width; rs *= 2) {
+		for (var wl = rs / 4; wl >= 1; wl /= 2) {
+			console.log(`regionSize: ${rs} wireLength: ${wl}`);
 			arr.push({
-				groupSize: gs,
-				wireLength: wl
+				wireLengthX: Math.floor(wl % width),
+				wireLengthY: Math.floor(wl / width),
+				regionSizeX: Math.floor(rs % width),
+				regionSizeY: Math.floor(rs / width)
 			});
 		}
 	}
 	return arr;
-}
-
-function debugBooleans(width: number, arr: bitonicUniforms[]) {
-	for (var u of arr) {
-		var s = `gs: ${u.groupSize} wl: ${u.wireLength} [`;
-		for (var i = 0; i < width * width; i++) {
-			var ag = Number(((i - (i % u.groupSize)) / u.groupSize) % 2 === 0);
-			var ft = Number(i % (2 * u.wireLength) < u.wireLength);
-			s += ` {${i}, ${ag ? "a" : "d"}, ${ft ? "y" : "n"}}`;
-		}
-		s += " ]";
-		console.log(s);
-	}
 }
