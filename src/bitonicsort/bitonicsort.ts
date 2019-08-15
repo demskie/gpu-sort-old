@@ -17,22 +17,23 @@ export function bitonicSort() {
 
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {
-		bytes[i + 0] = 255 - i;
+		bytes[i + 0] = gpu.packInt16(255 - i)[0];
+		bytes[i + 1] = gpu.packInt16(255 - i)[1];
 	}
 	firstByteSlice.pushTextureData(bytes);
 
 	const bitonicUniforms = calculateBitonicUniforms(textureWidth);
 	console.log(bitonicUniforms);
-	for (var uniforms of bitonicUniforms) {
+	for (var i = 0; i < bitonicUniforms.length; i++) {
 		indices.compute(computeShader, {
 			u_indices: indices,
 			u_firstByteSlice: firstByteSlice,
-			u_wireLengthX: uniforms.wireLengthX,
-			u_wireLengthY: uniforms.wireLengthY,
-			u_regionSizeX: uniforms.regionSizeX,
-			u_regionSizeY: uniforms.regionSizeY
+			u_wireLengthX: bitonicUniforms[i].wireLengthX,
+			u_wireLengthY: bitonicUniforms[i].wireLengthY,
+			u_regionSizeX: bitonicUniforms[i].regionSizeX,
+			u_regionSizeY: bitonicUniforms[i].regionSizeY
 		});
-		break;
+		if (i >= 0) break;
 	}
 
 	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);

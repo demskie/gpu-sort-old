@@ -43,8 +43,6 @@ void main() {
 	float firstTexelBool = floatLessThan(floor(gl_FragCoord.x), floor(middleStartCoord.x)) *
 						   floatLessThanOrEqual(floor(gl_FragCoord.y), floor(middleStartCoord.y));
 
-	gl_FragColor = vec4(int16ToVec2(ascendingGroupBool), int16ToVec2(firstTexelBool));
-
 	// calculate peer fragCoord
 	vec2 peerFragCoord = vec2(gl_FragCoord.xy);
 	peerFragCoord.x += floatEquals(firstTexelBool, 1.0) * u_wireLengthX;
@@ -89,8 +87,6 @@ void main() {
 	notSwapBool += floatEquals(notSwapBool, 0.0) * floatEquals(swapBool, 0.0);
 
 	// use booleans to render the correct lookup texel
-	// gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
-	// 			 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
-
-	
+	gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
+				 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
 }
