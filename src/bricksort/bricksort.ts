@@ -1,9 +1,7 @@
 import * as gpu from "gpu-compute";
 import { uniformInt32Range } from "../lib/notrandom";
 
-export function brickSort() {
-	const textureWidth = 4096;
-
+export function brickSort(textureWidth: number) {
 	const horizSortEvenOdd = require("fs").readFileSync("src/bricksort/01_horizSortEvenOdd.frag", "utf8");
 	const horizSortOddEven = require("fs").readFileSync("src/bricksort/02_horizSortOddEven.frag", "utf8");
 	const vertSortEvenOdd = require("fs").readFileSync("src/bricksort/03_vertSortEvenOdd.frag", "utf8");

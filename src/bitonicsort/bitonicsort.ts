@@ -1,9 +1,7 @@
 import * as gpu from "gpu-compute";
 import { uniformInt32Range } from "../lib/notrandom";
 
-export function bitonicSort() {
-	const textureWidth = 4096;
-
+export function bitonicSort(textureWidth: number) {
 	const bitonicSortSource = require("fs").readFileSync("src/bitonicsort/032_bitonicSort.frag", "utf8");
 
 	const indices = new gpu.RenderTarget(textureWidth);
@@ -20,9 +18,9 @@ export function bitonicSort() {
 	}
 	firstByteSlice.pushTextureData(bytes);
 
-	let start = Date.now();
-
 	const bitonicUniforms = calculateBitonicUniforms(textureWidth);
+
+	let start = Date.now();
 	for (var i = 0; i < bitonicUniforms.length; i++) {
 		indices.compute(computeShader, {
 			u_indices: indices,
@@ -34,7 +32,7 @@ export function bitonicSort() {
 		});
 	}
 
-	console.log(`finished ${textureWidth} x ${textureWidth} BitonicSort in: ${Date.now() - start}ms`);
+	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);
 }
 
 function createIndices(textureWidth: number) {
