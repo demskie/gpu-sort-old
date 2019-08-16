@@ -60,8 +60,6 @@ void main() {
 	peerFragCoord += floatEquals(firstTexelBool, 1.0) * halfBlockOffset;
 	peerFragCoord -= floatEquals(firstTexelBool, 0.0) * halfBlockOffset;
 
-	gl_FragColor = vec4(int16ToVec2(peerFragCoord.x), int16ToVec2(peerFragCoord.y));
-
 	// get peer lookup coordinates
 	vec4 peerLookupTexel = texture2D(u_indices, peerFragCoord.xy / TEXTURE_WIDTH);
 	vec2 peerLookupCoord = vec2(vec2ToInt16(peerLookupTexel.rg) + 0.5,
@@ -99,6 +97,6 @@ void main() {
 	notSwapBool += floatEquals(notSwapBool, 0.0) * floatEquals(swapBool, 0.0);
 
 	// use booleans to render the correct lookup texel
-	//gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
-	// 			 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
+	gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
+	 			 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
 }

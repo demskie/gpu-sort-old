@@ -2,7 +2,7 @@ import * as gpu from "gpu-compute";
 import { uniformInt32Range } from "../lib/notrandom";
 
 export function bitonicSort() {
-	const textureWidth = 4;
+	const textureWidth = 16;
 
 	const bitonicSortSource = require("fs").readFileSync("src/bitonicsort/032_bitonicSort.frag", "utf8");
 
@@ -17,29 +17,23 @@ export function bitonicSort() {
 
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {
-		bytes[i + 0] = gpu.packInt16(255 - i)[0];
-		bytes[i + 1] = gpu.packInt16(255 - i)[1];
+		bytes[i + 0] = gpu.packInt16(gpu.MAX_INT16 - i / 4)[0];
+		bytes[i + 1] = gpu.packInt16(gpu.MAX_INT16 - i / 4)[1];
 	}
 	firstByteSlice.pushTextureData(bytes);
 
 	const bitonicUniforms = calculateBitonicUniforms(textureWidth);
-	// console.log(printInt16Pairs(textureWidth, indices.readPixels()));
 	for (var i = 0; i < bitonicUniforms.length; i++) {
-		console.log(bitonicUniforms[i]);
-		if (i >= 99) break;
-		if (true) {
-			indices.compute(computeShader, {
-				u_indices: indices,
-				u_firstByteSlice: firstByteSlice,
-				u_blockSizeX: bitonicUniforms[i].blockSizeX,
-				u_blockSizeY: bitonicUniforms[i].blockSizeY,
-				u_regionSizeX: bitonicUniforms[i].regionSizeX,
-				u_regionSizeY: bitonicUniforms[i].regionSizeY
-			});
-			console.log(printFragCoordPairs(textureWidth, indices.readPixels()));
-		}
-		// console.log(convertFragCoordPairs(textureWidth, indices.readPixels()));
+		indices.compute(computeShader, {
+			u_indices: indices,
+			u_firstByteSlice: firstByteSlice,
+			u_blockSizeX: bitonicUniforms[i].blockSizeX,
+			u_blockSizeY: bitonicUniforms[i].blockSizeY,
+			u_regionSizeX: bitonicUniforms[i].regionSizeX,
+			u_regionSizeY: bitonicUniforms[i].regionSizeY
+		});
 	}
+	printFragCoordPairs(textureWidth, indices.readPixels());
 
 	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);
 }
@@ -61,10 +55,8 @@ function createIndices(textureWidth: number) {
 function printInt16Pairs(width: number, bytes: Uint8Array) {
 	let s = "[\n";
 	for (var i = 0; i < bytes.length; i += 4) {
-		s += `\ti: ${i / 4}  \tp: [ ${gpu.unpackInt16(bytes[i + 0], bytes[i + 1])}, ${gpu.unpackInt16(
-			bytes[i + 2],
-			bytes[i + 3]
-		)} ]\n`;
+		let v = [gpu.unpackInt16(bytes[i + 0], bytes[i + 1]), gpu.unpackInt16(bytes[i + 2], bytes[i + 3])];
+		s += `\ti: ${i / 4}  \tp: [ ${v[0]}, ${v[1]} ]\n`;
 	}
 	console.log(s + "]\n");
 }
@@ -91,9 +83,9 @@ function calculateBitonicUniforms(width: number) {
 		for (var bs = rs / 2; bs > 1; bs /= 2) {
 			console.log(`blockSize: ${bs} regionSize: ${rs}`);
 			arr.push({
-				blockSizeX: width - Math.floor(bs % width),
+				blockSizeX: Math.floor(bs % width) > 0 ? Math.floor(bs % width) : width,
 				blockSizeY: Math.max(Math.floor(bs / width), 1),
-				regionSizeX: width - Math.floor(rs % width),
+				regionSizeX: Math.floor(rs % width) > 0 ? Math.floor(rs % width) : width,
 				regionSizeY: Math.max(Math.floor(rs / width), 1)
 			});
 		}
