@@ -2,11 +2,9 @@ import * as gpu from "gpu-compute";
 import { uniformInt32Range } from "../lib/notrandom";
 
 export function bitonicSort() {
-	const textureWidth = 16;
+	const textureWidth = 4096;
 
 	const bitonicSortSource = require("fs").readFileSync("src/bitonicsort/032_bitonicSort.frag", "utf8");
-
-	let start = Date.now();
 
 	const indices = new gpu.RenderTarget(textureWidth);
 	const firstByteSlice = new gpu.RenderTarget(textureWidth);
@@ -22,6 +20,8 @@ export function bitonicSort() {
 	}
 	firstByteSlice.pushTextureData(bytes);
 
+	let start = Date.now();
+
 	const bitonicUniforms = calculateBitonicUniforms(textureWidth);
 	for (var i = 0; i < bitonicUniforms.length; i++) {
 		indices.compute(computeShader, {
@@ -33,9 +33,8 @@ export function bitonicSort() {
 			u_regionSizeY: bitonicUniforms[i].regionSizeY
 		});
 	}
-	printFragCoordPairs(textureWidth, indices.readPixels());
 
-	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);
+	console.log(`finished ${textureWidth} x ${textureWidth} BitonicSort in: ${Date.now() - start}ms`);
 }
 
 function createIndices(textureWidth: number) {
@@ -81,7 +80,6 @@ function calculateBitonicUniforms(width: number) {
 	const arr = [] as bitonicUniforms[];
 	for (var rs = 4; rs <= 2 * width * width; rs *= 2) {
 		for (var bs = rs / 2; bs > 1; bs /= 2) {
-			console.log(`blockSize: ${bs} regionSize: ${rs}`);
 			arr.push({
 				blockSizeX: Math.floor(bs % width) > 0 ? Math.floor(bs % width) : width,
 				blockSizeY: Math.max(Math.floor(bs / width), 1),
