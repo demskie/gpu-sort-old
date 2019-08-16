@@ -76,10 +76,6 @@ function printFragCoordPairs(width: number, bytes: Uint8Array) {
 		s += `\ti: ${i / 4}  \tv: ${v}\n`;
 	}
 	console.log(s + "]\n");
-	// for (var frag of unpackInt16Pairs(bytes)) {
-	// 	arr.push(frag[0] + frag[1] * width);
-	// }
-	// return arr;
 }
 
 interface bitonicUniforms {
