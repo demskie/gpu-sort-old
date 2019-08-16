@@ -5,8 +5,8 @@ precision mediump sampler2D;
 uniform sampler2D u_indices;
 uniform sampler2D u_firstByteSlice;
 
-uniform float u_wireLengthX;
-uniform float u_wireLengthY;
+uniform float u_blockSizeX;
+uniform float u_blockSizeY;
 uniform float u_regionSizeX;
 uniform float u_regionSizeY;
 
@@ -28,27 +28,39 @@ void main() {
 	vec4 currentLookupTexel = texture2D(u_indices, gl_FragCoord.xy / TEXTURE_WIDTH);
 	vec2 currentLookupCoord = vec2(vec2ToInt16(currentLookupTexel.rg) + 0.5,
 								   vec2ToInt16(currentLookupTexel.ba) + 0.5);
+	
+	// calculate starting coordinates for this block
+	vec2 blockStartCoord  = vec2(gl_FragCoord.x - floor(mod(floor(gl_FragCoord.x), u_blockSizeX)),
+								 gl_FragCoord.y - floor(mod(floor(gl_FragCoord.y), u_blockSizeY)));
+	vec2 blockOffset      = vec2(floatEquals(u_blockSizeY, 1.0) * u_blockSizeX, floatGreaterThan(u_blockSizeY, 1.0) * u_blockSizeY);
+	vec2 halfBlockOffset  = vec2(floatEquals(blockOffset.y, 0.0) * blockOffset.x / 2.0 +
+								 floatEquals(blockOffset.y, 1.0) * floatEquals(blockOffset.x, 0.0) * TEXTURE_WIDTH / 2.0, 
+								 floor(blockOffset.y / 2.0));
+	vec2 blockMiddleCoord = vec2(blockStartCoord.xy) + halfBlockOffset;
 
 	// calculate starting coordinates for each sorting behavior
-	vec2 ascendingStartCoord = vec2(gl_FragCoord.x - floor(mod(floor(gl_FragCoord.x), u_regionSizeX)),
-									gl_FragCoord.y - floor(mod(floor(gl_FragCoord.y), u_regionSizeY)));
-	vec2 descendingStartCoord = vec2(ascendingStartCoord.x + u_regionSizeX / 2.0,
-									 ascendingStartCoord.y + u_regionSizeY / 2.0);
+	vec2 ascendingStartCoord  = vec2(gl_FragCoord.x - floor(mod(floor(gl_FragCoord.x), u_regionSizeX)),
+									 gl_FragCoord.y - floor(mod(floor(gl_FragCoord.y), u_regionSizeY)));
+	vec2 regionOffset         = vec2(floatEquals(u_regionSizeY, 1.0) * u_regionSizeX, floatGreaterThan(u_regionSizeY, 1.0) * u_regionSizeY);
+	vec2 halfRegionOffset     = vec2(floatEquals(regionOffset.y, 0.0) * regionOffset.x / 2.0 +
+									 floatEquals(regionOffset.y, 1.0) * floatEquals(regionOffset.x, 0.0) * TEXTURE_WIDTH / 2.0, 
+									 floor(regionOffset.y / 2.0));
+	vec2 descendingStartCoord = vec2(ascendingStartCoord.xy) + halfRegionOffset;
 
 	// get booleans for determining relative position and sorting order
-	float ascendingGroupBool = floatLessThan(floor(gl_FragCoord.x), floor(descendingStartCoord.x)) * 
-							   floatLessThan(floor(gl_FragCoord.y), floor(descendingStartCoord.y));
-	vec2 middleStartCoord = (floatEquals(ascendingGroupBool, 1.0) * vec2(ascendingStartCoord.x + floor(u_regionSizeX / 4.0), ascendingStartCoord.y + floor(u_regionSizeY / 4.0))) +
-	                        (floatEquals(ascendingGroupBool, 0.0) * vec2(descendingStartCoord.x + floor(u_regionSizeX / 4.0), descendingStartCoord.y + floor(u_regionSizeY / 4.0)));
-	float firstTexelBool = floatLessThan(floor(gl_FragCoord.x), floor(middleStartCoord.x)) *
-						   floatLessThanOrEqual(floor(gl_FragCoord.y), floor(middleStartCoord.y));
+	float ascendingGroupBool = floatLessThan(floor(gl_FragCoord.y), floor(descendingStartCoord.y));
+	ascendingGroupBool      += floatEquals(floor(gl_FragCoord.y), floor(descendingStartCoord.y)) * 
+						       floatLessThan(floor(gl_FragCoord.x), floor(descendingStartCoord.x));		   
+	float firstTexelBool     = floatLessThan(floor(gl_FragCoord.y), floor(blockMiddleCoord.y));
+	firstTexelBool          += floatEquals(floor(gl_FragCoord.y), floor(blockMiddleCoord.y)) * 
+					           floatLessThan(floor(gl_FragCoord.x), floor(blockMiddleCoord.x));
 
 	// calculate peer fragCoord
 	vec2 peerFragCoord = vec2(gl_FragCoord.xy);
-	peerFragCoord.x += floatEquals(firstTexelBool, 1.0) * u_wireLengthX;
-	peerFragCoord.y += floatEquals(firstTexelBool, 1.0) * u_wireLengthY;
-	peerFragCoord.x -= floatEquals(firstTexelBool, 0.0) * u_wireLengthX;
-	peerFragCoord.y -= floatEquals(firstTexelBool, 0.0) * u_wireLengthY;
+	peerFragCoord += floatEquals(firstTexelBool, 1.0) * halfBlockOffset;
+	peerFragCoord -= floatEquals(firstTexelBool, 0.0) * halfBlockOffset;
+
+	gl_FragColor = vec4(int16ToVec2(peerFragCoord.x), int16ToVec2(peerFragCoord.y));
 
 	// get peer lookup coordinates
 	vec4 peerLookupTexel = texture2D(u_indices, peerFragCoord.xy / TEXTURE_WIDTH);
@@ -87,6 +99,6 @@ void main() {
 	notSwapBool += floatEquals(notSwapBool, 0.0) * floatEquals(swapBool, 0.0);
 
 	// use booleans to render the correct lookup texel
-	gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
-				 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
+	//gl_FragColor = peerLookupTexel * floatEquals(swapBool, 1.0)
+	// 			 + currentLookupTexel * floatEquals(notSwapBool, 1.0);
 }
