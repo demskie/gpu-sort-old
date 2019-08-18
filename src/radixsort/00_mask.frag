@@ -24,7 +24,7 @@ vec2 addToVec2(vec2 v, float f, float w) { v.y += floor((v.x + f) / w); v.x = mo
 void main() {
 	// get starting coordinates for bit flags
 	vec2 originFragCoord = vec2(0.5, 0.5) + 4.0 * vec2(floor(gl_FragCoord.x), floor(gl_FragCoord.y));
-	bool result[16]
+	bool result[16];
 
 	// determine which color channel to lookup
 	float bitIndex = mod(floor(u_index), 32.0);
@@ -51,6 +51,6 @@ void main() {
 	
 	// pack sixteen booleans into first two color channels
 	float r = packBooleans(bool[8](result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7]));
-	float g = packBooleans(bool[8](result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15]))
+	float g = packBooleans(bool[8](result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15]));
 	gl_FragColor = vec4(r, g, 0.0, 0.0);
 }
