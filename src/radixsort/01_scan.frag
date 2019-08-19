@@ -33,17 +33,17 @@ void main() {
 	currentTexel.r = clearMSB(currentTexel.r);
 	vec2 currentCoord = vec2(vec2ToInt16(currentTexel.rg), vec2ToInt16(currentTexel.ba));
 
-	// pull previous coordinates and remove bit value
-	vec4 previousTexel = texture2D(u_scanned, vec2(gl_FragCoord.x - u_offsetX, gl_FragCoord.y - u_offsetY) / TEXTURE_WIDTH);
-	previousTexel.r = clearMSB(previousTexel.r);
-	vec2 previousCoord = vec2(vec2ToInt16(previousTexel.rg), vec2ToInt16(previousTexel.ba));
+	// pull offset coordinates and remove bit value
+	vec4 offsetTexel = texture2D(u_scanned, vec2(gl_FragCoord.x - u_offsetX, gl_FragCoord.y - u_offsetY) / TEXTURE_WIDTH);
+	offsetTexel.r = clearMSB(offsetTexel.r);
+	vec2 offsetCoord = vec2(vec2ToInt16(offsetTexel.rg), vec2ToInt16(offsetTexel.ba));
 
 	// zeroize previous coordinates if they aren't valid
-	previousCoord *= floatGreaterThanOrEqual(floor(previousCoord.x), 0.0) 
-				   * floatGreaterThanOrEqual(floor(previousCoord.y), 0.0);
+	offsetCoord *= floatGreaterThanOrEqual(floor(offsetCoord.x), 0.0) 
+				 * floatGreaterThanOrEqual(floor(offsetCoord.y), 0.0);
 
 	// add previous coordinates to current coordinates
-	currentCoord = addToVec2(currentCoord, previousCoord);
+	currentCoord = currentCoord + offsetCoord;
 
 	// inject bit value into currentCoordinates
 	vec2 redGreen = int16ToVec2(currentCoord.x);
