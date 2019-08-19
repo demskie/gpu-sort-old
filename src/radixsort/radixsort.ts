@@ -43,6 +43,14 @@ export function radixSort(textureWidth: number) {
 		indices.compute(transposeShader, { u_scanned: alpha, u_indices: indices });
 	}
 	console.log(`finished RadixSort in: ${Date.now() - start}ms`);
+
+	indices.delete();
+	data.delete();
+	alpha.delete();
+	maskShader.delete();
+	scanShader.delete();
+	scatterShader.delete();
+	transposeShader.delete();
 }
 
 function createIndices(textureWidth: number) {

@@ -33,4 +33,10 @@ export function brickSort(textureWidth: number) {
 		renderTarget.compute(fourthShader, { u_gpuSortedObjects: renderTarget });
 	}
 	console.log(`finished BrickSort in: ${Date.now() - start}ms`);
+
+	renderTarget.delete();
+	firstShader.delete();
+	secondShader.delete();
+	thirdShader.delete();
+	fourthShader.delete();
 }

@@ -8,7 +8,7 @@
 	},
 	"dependencies": {
 		"@types/node": "^12.7.1",
-		"gpu-compute": "0.0.19",
+		"gpu-compute": "0.0.20",
 		"twgl.js": "^4.11.0",
 		"typescript": "^3.5.3"
 	}

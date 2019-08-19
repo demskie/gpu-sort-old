@@ -33,6 +33,10 @@ export function bitonicSort(textureWidth: number) {
 	}
 
 	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);
+
+	indices.delete();
+	firstByteSlice.delete();
+	computeShader.delete();
 }
 
 function createIndices(textureWidth: number) {
