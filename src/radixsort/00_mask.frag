@@ -4,7 +4,7 @@ precision mediump sampler2D;
 
 uniform sampler2D u_data;
 
-uniform float u_index;
+uniform float u_bitIndex;
 
 const float TEXTURE_WIDTH = ${textureWidth};
 
@@ -20,37 +20,23 @@ vec2 int16ToVec2(float f) { f = clamp(f, -32767.0, 32768.0) + 32767.0; return ve
 void unpackBooleans(float f, inout bool arr[8]) { f = floor(f * 255.0); arr[7] = bool(int(floatGreaterThanOrEqual(f, 128.0))); f -= floatGreaterThanOrEqual(f, 128.0) * 128.0; arr[6] = bool(int(floatGreaterThanOrEqual(f, 64.0))); f -= floatGreaterThanOrEqual(f, 64.0) * 64.0; arr[5] = bool(int(floatGreaterThanOrEqual(f, 32.0))); f -= floatGreaterThanOrEqual(f, 32.0) * 32.0; arr[4] = bool(int(floatGreaterThanOrEqual(f, 16.0))); f -= floatGreaterThanOrEqual(f, 16.0) * 16.0; arr[3] = bool(int(floatGreaterThanOrEqual(f, 8.0))); f -= floatGreaterThanOrEqual(f, 8.0) * 8.0; arr[2] = bool(int(floatGreaterThanOrEqual(f, 4.0))); f -= floatGreaterThanOrEqual(f, 4.0) * 4.0; arr[1] = bool(int(floatGreaterThanOrEqual(f, 2.0))); f -= floatGreaterThanOrEqual(f, 2.0) * 2.0; arr[0] = bool(int(floatGreaterThanOrEqual(f, 1.0))); }
 float packBooleans(bool arr[8]) { float f = float(int(arr[7])) * 128.0; f += float(int(arr[6])) * 64.0; f += float(int(arr[5])) * 32.0; f += float(int(arr[4])) * 16.0; f += float(int(arr[3])) * 8.0; f += float(int(arr[2])) * 4.0; f += float(int(arr[1])) * 2.0; return f + float(int(arr[0])); }
 vec2 addToVec2(vec2 v, float f, float w) { v.y += floor((v.x + f) / w); v.x = mod(v.x + f, w); return v; }
+bool getMSB(float f) { return floatGreaterThanOrEqual(f * 255.0, 128.0); }
+float clearMSB(float f) { return (f * 255.0 - floatGreaterThanOrEqual(f * 255.0, 128.0) * 128.0) / 255.0; }
+float setMSB(float f, bool b) { return (f * 255.0 + float(b) * floatGreaterThanOrEqual(f * 255.0, 128.0) * 128.0) / 255.0; }
 
 void main() {
-	// get starting coordinates for bit flags
-	vec2 originFragCoord = vec2(0.5, 0.5) + 4.0 * vec2(floor(gl_FragCoord.x), floor(gl_FragCoord.y));
-	bool result[16];
-
-	// determine which color channel to lookup
-	float bitIndex = mod(floor(u_index), 32.0);
-
-	// iterate through sixteen source texels
-	for (int x = 0; x < 4; x++) {
-		for (int y = 0; y < 4; y++) {
-			// get the byte value that contains the bit flag in question
-			vec4 texel = texture2D(u_data, vec2(originFragCoord.x + float(x), originFragCoord.y + float(y)) / (4.0 * TEXTURE_WIDTH));
-			float byte = floatGreaterThanOrEqual(bitIndex, 0.0) * floatLessThan(bitIndex, 8.0) * texel.r
-					   + floatGreaterThanOrEqual(bitIndex, 8.0) * floatLessThan(bitIndex, 16.0) * texel.g
-					   + floatGreaterThanOrEqual(bitIndex, 16.0) * floatLessThan(bitIndex, 24.0) * texel.b
-					   + floatGreaterThanOrEqual(bitIndex, 24.0) * floatLessThan(bitIndex, 32.0) * texel.a;
-			
-			// pull bit flag from byte value
-			bool boolArray[8];
-			unpackBooleans(byte, boolArray);
-			bool bitFlag = boolArray[int(mod(bitIndex, 8.0))];
-
-			// push bit flag into result after flipping the value
-			result[x + y * 4] = floatEquals(float(bitFlag), 0.0);
-		}
-	} 
+	// get the byte value that contains the bit flag in question
+	vec4 texel = texture2D(u_data, gl_FragCoord.xy / TEXTURE_WIDTH);
+	float byte = floatGreaterThanOrEqual(bitIndex, 0.0) * floatLessThan(bitIndex, 8.0) * texel.r
+			   + floatGreaterThanOrEqual(bitIndex, 8.0) * floatLessThan(bitIndex, 16.0) * texel.g
+			   + floatGreaterThanOrEqual(bitIndex, 16.0) * floatLessThan(bitIndex, 24.0) * texel.b
+			   + floatGreaterThanOrEqual(bitIndex, 24.0) * floatLessThan(bitIndex, 32.0) * texel.a;
 	
-	// pack sixteen booleans into first two color channels
-	float r = packBooleans(bool[8](result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7]));
-	float g = packBooleans(bool[8](result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15]));
-	gl_FragColor = vec4(r, g, 0.0, 0.0);
+	// pull bit flag from byte value
+	bool boolArray[8];
+	unpackBooleans(byte, boolArray);
+	bool bitFlag = boolArray[int(mod(bitIndex, 8.0))];
+
+	// push bit flag into most significant bit of red color channel
+	gl_FragColor = vec4(setMSB(0.0, bitFlag), 0.0, 0.0, 0.0);
 }

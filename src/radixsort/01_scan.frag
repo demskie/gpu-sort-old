@@ -2,7 +2,7 @@ precision mediump float;
 precision mediump int;
 precision mediump sampler2D;
 
-uniform sampler2D u_data;
+uniform sampler2D u_scanned;
 
 uniform float u_offsetX;
 uniform float u_offsetY;
@@ -28,13 +28,13 @@ float setMSB(float f, bool b) { return (f * 255.0 + float(b) * floatGreaterThanO
 
 void main() {
 	// pull current coordinates and remove bit value
-	vec4 currentTexel = texture2D(u_data, gl_FragCoord.xy / TEXTURE_WIDTH);
+	vec4 currentTexel = texture2D(u_scanned, gl_FragCoord.xy / TEXTURE_WIDTH);
 	bool currentBitFlag = getMSB(currentTexel.r); 
 	currentTexel.r = clearMSB(currentTexel.r);
 	vec2 currentCoord = vec2(vec2ToInt16(currentTexel.rg), vec2ToInt16(currentTexel.ba));
 
 	// pull previous coordinates and remove bit value
-	vec4 previousTexel = texture2D(u_data, vec2(gl_FragCoord.x - u_offsetX, gl_FragCoord.y - u_offsetY) / TEXTURE_WIDTH);
+	vec4 previousTexel = texture2D(u_scanned, vec2(gl_FragCoord.x - u_offsetX, gl_FragCoord.y - u_offsetY) / TEXTURE_WIDTH);
 	previousTexel.r = clearMSB(previousTexel.r);
 	vec2 previousCoord = vec2(vec2ToInt16(previousTexel.rg), vec2ToInt16(previousTexel.ba));
 
