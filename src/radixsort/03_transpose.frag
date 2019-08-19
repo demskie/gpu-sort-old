@@ -2,7 +2,6 @@ precision mediump float;
 precision mediump int;
 precision mediump sampler2D;
 
-uniform sampler2D u_scatter;
 uniform sampler2D u_indices;
 
 const float TEXTURE_WIDTH = ${textureWidth};
