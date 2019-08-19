@@ -16,7 +16,7 @@ float floatGreaterThanOrEqual(float f1, float f2) { return 1.0 - floatLessThan(f
 float vec2ToInt16(vec2 v) { return clamp(floor(floor(v.r * 255.0) * 256.0) + floor(v.g * 255.0) - 32767.0, -32767.0, 32768.0); }
 vec2 int16ToVec2(float f) { f = clamp(f, -32767.0, 32768.0) + 32767.0; return vec2(floor(f / 256.0), f - floor(f / 256.0) * 256.0) / 255.0; }
 vec2 addToVec2(vec2 v, float f, float w) { v.y += floor((v.x + f) / w); v.x = mod(v.x + f, w); return v; }
-bool getMSB(float f) { return floatGreaterThanOrEqual(f * 255.0, 128.0); }
+bool getMSB(float f) { return bool(floatGreaterThanOrEqual(f * 255.0, 128.0)); }
 float clearMSB(float f) { return (f * 255.0 - floatGreaterThanOrEqual(f * 255.0, 128.0) * 128.0) / 255.0; }
 float setMSB(float f, bool b) { return (f * 255.0 + float(b) * floatGreaterThanOrEqual(f * 255.0, 128.0) * 128.0) / 255.0; }
 
@@ -28,7 +28,7 @@ void main() {
 	vec2 currentCoord = vec2(vec2ToInt16(currentTexel.rg), vec2ToInt16(currentTexel.ba));
 
 	// pull previous coordinates and remove bit value
-	vec4 previousTexel = texture2D(u_scanned, addToVec2(vec2(gl_FragCoord.xy), -1.0) / TEXTURE_WIDTH);
+	vec4 previousTexel = texture2D(u_scanned, addToVec2(vec2(gl_FragCoord.xy), -1.0, TEXTURE_WIDTH) / TEXTURE_WIDTH);
 	previousTexel.r = clearMSB(previousTexel.r);
 	vec2 previousCoord = vec2(vec2ToInt16(previousTexel.rg), vec2ToInt16(previousTexel.ba));
 
@@ -58,9 +58,9 @@ void main() {
 	// if currentBitFlag == 1 && isFirstTexel == 0
 	scatterCoord += floatEquals(float(currentBitFlag), 1.0)
 			      * floatEquals(isFirstTexel, 0.0)
-			      * vec2(floor(gl_FragCoord.x - prevCoord.x + lastCoord.x), 
-				         floor(gl_FragCoord.y - prevCoord.y + lastCoord.y));
+			      * vec2(floor(gl_FragCoord.x - previousCoord.x + lastCoord.x), 
+				         floor(gl_FragCoord.y - previousCoord.y + lastCoord.y));
 
 	// output scatter coordinates
-	gl_FragCoord =  vec4(int16ToVec2(scatterCoord.x), int16ToVec2(scatterCoord.y));
+	gl_FragColor = vec4(int16ToVec2(scatterCoord.x), int16ToVec2(scatterCoord.y));
 }
