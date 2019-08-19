@@ -37,6 +37,9 @@ void main() {
 	unpackBooleans(byte, boolArray);
 	bool bitFlag = boolArray[int(mod(bitIndex, 8.0))];
 
+	// flip boolean value
+	bitFlag = bool(floatEquals(float(bitFlag), 0.0));
+
 	// push bit flag into most significant bit of red color channel
 	gl_FragColor = vec4(setMSB(0.0, bitFlag), 0.0, 0.0, 0.0);
 }
