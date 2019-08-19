@@ -2,19 +2,24 @@ import * as gpu from "gpu-compute";
 import { uniformInt32Range } from "../lib/notrandom";
 
 export function radixSort(textureWidth: number) {
-	const mask = require("fs").readFileSync("src/radixsort/00_mask.frag", "utf8");
-	const scan = require("fs").readFileSync("src/radixsort/01_scan.frag", "utf8");
-	const scatter = require("fs").readFileSync("src/radixsort/02_scatter.frag", "utf8");
-	const transpose = require("fs").readFileSync("src/radixsort/03_transpose.frag", "utf8");
+	const maskFrag = require("fs").readFileSync("src/radixsort/00_mask.frag", "utf8");
+	const scanFrag = require("fs").readFileSync("src/radixsort/01_scan.frag", "utf8");
+	const scatterFrag = require("fs").readFileSync("src/radixsort/02_scatter.frag", "utf8");
+	const transposeFrag = require("fs").readFileSync("src/radixsort/03_transpose.frag", "utf8");
+	const transposeVert = require("fs").readFileSync("src/radixsort/03_transpose.vert", "utf8");
 
 	const indices = new gpu.RenderTarget(textureWidth);
 	const data = new gpu.RenderTarget(textureWidth);
 	const alpha = new gpu.RenderTarget(textureWidth);
 	const fragVariables = { textureWidth: `${textureWidth}.0` };
-	const maskShader = new gpu.ComputeShader(mask, fragVariables);
-	const scanShader = new gpu.ComputeShader(scan, fragVariables);
-	const scatterShader = new gpu.ComputeShader(scatter, fragVariables);
-	const transposeShader = new gpu.ComputeShader(transpose, fragVariables);
+	const maskShader = new gpu.ComputeShader(maskFrag, fragVariables);
+	const scanShader = new gpu.ComputeShader(scanFrag, fragVariables);
+	const scatterShader = new gpu.ComputeShader(scatterFrag, fragVariables);
+	const transposeShader = new gpu.ComputeShader(
+		transposeFrag,
+		fragVariables,
+		transposeVert.replace("${textureWidth}", `${textureWidth}.0`)
+	);
 
 	indices.pushTextureData(createIndices(textureWidth));
 
