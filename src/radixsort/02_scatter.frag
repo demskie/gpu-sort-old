@@ -37,30 +37,30 @@ void main() {
 	lastTexel.r = clearMSB(lastTexel.r);
 	vec2 lastCoord = vec2(vec2ToInt16(lastTexel.rg), vec2ToInt16(lastTexel.ba));
 
-	// create an empty result texel
-	vec4 result = vec4(0.0, 0.0, 0.0, 0.0);
+	// create an empty scatterCoord 
+	vec2 scatterCoord = vec2(0.0, 0.0);
 
 	// determine if this is the first texel
 	float isFirstTexel = min(floatEquals(floor(gl_FragCoord.x), 0.0), 
 							 floatEquals(floor(gl_FragCoord.y), 0.0));
 
 	// if currentBitFlag == 0 && isFirstTexel == 0
-	result += floatEquals(float(currentBitFlag), 0.0)
-			* floatEquals(isFirstTexel, 0.0)
-			* previousTexel.rgba;
+	scatterCoord += floatEquals(float(currentBitFlag), 0.0)
+			      * floatEquals(isFirstTexel, 0.0)
+			      * previousCoord.xy;
 	
 	// if currentBitFlag == 1 && isFirstTexel == 1
-	result += floatEquals(float(currentBitFlag), 1.0)
-			* floatEquals(isFirstTexel, 1.0)
-			* vec4(intToVec2(floor(gl_FragCoord.x) + lastCoord.x), 
-				   intToVec2(floor(gl_FragCoord.y) + lastCoord.y));
+	scatterCoord += floatEquals(float(currentBitFlag), 1.0)
+			      * floatEquals(isFirstTexel, 1.0)
+			      * vec2(floor(gl_FragCoord.x) + lastCoord.x, 
+				         floor(gl_FragCoord.y) + lastCoord.y);
 	
 	// if currentBitFlag == 1 && isFirstTexel == 0
-	result += floatEquals(float(currentBitFlag), 1.0)
-			* floatEquals(isFirstTexel, 0.0)
-			* vec4(intToVec2(floor(gl_FragCoord.x) - prevCoord.x + lastCoord.x), 
-				   intToVec2(floor(gl_FragCoord.y) - prevCoord.y + lastCoord.y));
+	scatterCoord += floatEquals(float(currentBitFlag), 1.0)
+			      * floatEquals(isFirstTexel, 0.0)
+			      * vec2(floor(gl_FragCoord.x - prevCoord.x + lastCoord.x), 
+				         floor(gl_FragCoord.y - prevCoord.y + lastCoord.y));
 
-	// output resulting texel
-	gl_FragCoord = result;
+	// transpose index at scatterCorrd into this output pixel
+	gl_FragCoord = texture2D(u_indices, vec2(scatterCoord.x + 0.5, scatterCoord.y + 0.5) / TEXTURE_WIDTH);
 }
