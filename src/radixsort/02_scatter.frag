@@ -61,6 +61,6 @@ void main() {
 			      * vec2(floor(gl_FragCoord.x - prevCoord.x + lastCoord.x), 
 				         floor(gl_FragCoord.y - prevCoord.y + lastCoord.y));
 
-	// transpose index at scatterCorrd into this output pixel
-	gl_FragCoord = texture2D(u_indices, vec2(scatterCoord.x + 0.5, scatterCoord.y + 0.5) / TEXTURE_WIDTH);
+	// output scatter coordinates
+	gl_FragCoord =  vec4(int16ToVec2(scatterCoord.x), int16ToVec2(scatterCoord.y));
 }
