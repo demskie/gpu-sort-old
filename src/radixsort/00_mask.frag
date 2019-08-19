@@ -2,6 +2,7 @@ precision mediump float;
 precision mediump int;
 precision mediump sampler2D;
 
+uniform sampler2D u_indices;
 uniform sampler2D u_data;
 
 uniform float u_bitIndex;
@@ -25,13 +26,17 @@ float clearMSB(float f) { return (f * 255.0 - floatGreaterThanOrEqual(f * 255.0,
 float setMSB(float f, bool b) { return (f * 255.0 + float(b) * floatGreaterThanOrEqual(f * 255.0, 128.0) * 128.0) / 255.0; }
 
 void main() {
+	// get index coordinates for data
+	vec4 indexTexel = texture2D(u_indices, gl_FragCoord.xy / TEXTURE_WIDTH);
+	vec2 indexCoord = vec2(vec2ToInt16(indexTexel.rg), vec2ToInt16(indexTexel.ba));
+
 	// get the byte value that contains the bit flag in question
-	vec4 texel = texture2D(u_data, gl_FragCoord.xy / TEXTURE_WIDTH);
+	vec4 texel = texture2D(u_data, vec2(indexCoord.x + 0.5, indexCoord.y + 0.5) / TEXTURE_WIDTH);
 	float byte = floatGreaterThanOrEqual(bitIndex, 0.0) * floatLessThan(bitIndex, 8.0) * texel.r
 			   + floatGreaterThanOrEqual(bitIndex, 8.0) * floatLessThan(bitIndex, 16.0) * texel.g
 			   + floatGreaterThanOrEqual(bitIndex, 16.0) * floatLessThan(bitIndex, 24.0) * texel.b
 			   + floatGreaterThanOrEqual(bitIndex, 24.0) * floatLessThan(bitIndex, 32.0) * texel.a;
-	
+
 	// pull bit flag from byte value
 	bool boolArray[8];
 	unpackBooleans(byte, boolArray);
