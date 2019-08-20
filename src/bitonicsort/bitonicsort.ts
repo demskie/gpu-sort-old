@@ -13,8 +13,8 @@ export function bitonicSort(textureWidth: number) {
 
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {
-		bytes[i + 0] = gpu.packInt16(gpu.MAX_INT16 - i / 4)[0];
-		bytes[i + 1] = gpu.packInt16(gpu.MAX_INT16 - i / 4)[1];
+		// bytes[i + 0] = gpu.packInt16(gpu.MAX_INT16 - i / 4)[0];
+		// bytes[i + 1] = gpu.packInt16(gpu.MAX_INT16 - i / 4)[1];
 	}
 	firstByteSlice.pushTextureData(bytes);
 
@@ -31,7 +31,7 @@ export function bitonicSort(textureWidth: number) {
 			u_regionSizeY: bitonicUniforms[i].regionSizeY
 		});
 	}
-
+	indices.readPixels();
 	console.log(`finished BitonicSort in: ${Date.now() - start}ms`);
 
 	indices.delete();

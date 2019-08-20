@@ -25,12 +25,12 @@ export function radixSort(textureWidth: number) {
 
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {
-		const xArr = gpu.packInt16(uniformInt32Range(i, gpu.MIN_INT16, gpu.MAX_INT16));
-		const yArr = gpu.packInt16(uniformInt32Range(i + 123, gpu.MIN_INT16, gpu.MAX_INT16));
-		bytes[i + 0] = xArr[0];
-		bytes[i + 1] = xArr[1];
-		bytes[i + 2] = yArr[0];
-		bytes[i + 3] = yArr[1];
+		// const xArr = gpu.packInt16(uniformInt32Range(i, gpu.MIN_INT16, gpu.MAX_INT16));
+		// const yArr = gpu.packInt16(uniformInt32Range(i + 123, gpu.MIN_INT16, gpu.MAX_INT16));
+		// bytes[i + 0] = xArr[0];
+		// bytes[i + 1] = xArr[1];
+		// bytes[i + 2] = yArr[0];
+		// bytes[i + 3] = yArr[1];
 	}
 	data.pushTextureData(bytes);
 
@@ -47,6 +47,7 @@ export function radixSort(textureWidth: number) {
 		alpha.compute(scatterShader, { u_scanned: alpha });
 		indices.compute(transposeShader, { u_scanned: alpha, u_indices: indices });
 	}
+	indices.readPixels();
 	console.log(`finished RadixSort in: ${Date.now() - start}ms`);
 
 	indices.delete();
