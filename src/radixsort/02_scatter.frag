@@ -1,66 +1,87 @@
+#ifdef GL_ES
 precision mediump float;
 precision mediump int;
 precision mediump sampler2D;
+#endif
 
 uniform sampler2D u_scanned;
 
-const float TEXTURE_WIDTH = ${textureWidth};
+const float TEXTURE_WIDTH = 1.0;
 
-float round(float f) { return floor(f + 0.5); }
-float floatEquals(float f1, float f2) { return 1.0 - abs(sign(f1 - f2)); }
-float floatNotEquals(float f1, float f2) { return abs(sign(f1 - f2)); }
-float floatLessThan(float f1, float f2) { return max(sign(f2 - f1), 0.0); }
-float floatGreaterThan(float f1, float f2) { return max(sign(f1 - f2), 0.0); }
-float floatLessThanOrEqual(float f1, float f2) { return 1.0 - floatGreaterThan(f1, f2); }
-float floatGreaterThanOrEqual(float f1, float f2) { return 1.0 - floatLessThan(f1, f2); }
-float vec2ToInt16(vec2 v) { return clamp(floor(floor(v.r * 255.0) * 256.0) + floor(v.g * 255.0) - 32767.0, -32767.0, 32768.0); }
-vec2 int16ToVec2(float f) { f = clamp(f, -32767.0, 32768.0) + 32767.0; return vec2(floor(f / 256.0), f - floor(f / 256.0) * 256.0) / 255.0; }
-vec2 addToVec2(vec2 v, float f, float w) { v.y += floor((v.x + f) / w); v.x = mod(v.x + f, w); return v; }
-bool getMSB(float f) { return bool(floatGreaterThanOrEqual(f * 255.0, 128.0)); }
-float clearMSB(float f) { return (f * 255.0 - floatGreaterThanOrEqual(f * 255.0, 128.0) * 128.0) / 255.0; }
-float setMSB(float f, bool b) { return (f * 255.0 + float(b) * floatGreaterThanOrEqual(f * 255.0, 128.0) * 128.0) / 255.0; }
+float round(float f);
+float floatEquals(float f1, float f2);
+float floatNotEquals(float f1, float f2);
+float floatLessThan(float f1, float f2);
+float floatGreaterThan(float f1, float f2);
+float floatLessThanOrEqual(float f1, float f2);
+float floatGreaterThanOrEqual(float f1, float f2);
+float vec2ToUint16(vec2 v);
+vec2 uint16ToVec2(float f);
+vec2 addToVec2(vec2 v, float f, float w);
+void unpackBooleans(float f, inout bool arr[8]);
+float packBooleans(bool arr[8]);
+bool getMSB(float f);
+float clearMSB(float f);
+float setMSB(float f, bool b);
 
 void main() {
 	// pull current coordinates and remove bit value
 	vec4 currentTexel = texture2D(u_scanned, gl_FragCoord.xy / TEXTURE_WIDTH);
 	bool currentBitFlag = getMSB(currentTexel.r); 
 	currentTexel.r = clearMSB(currentTexel.r);
-	vec2 currentCoord = vec2(vec2ToInt16(currentTexel.rg), vec2ToInt16(currentTexel.ba));
+	vec2 currentValue = vec2(vec2ToUint16(currentTexel.rg), vec2ToUint16(currentTexel.ba));
+
+	// calculate previous coordinates
+	vec2 previousFragCoord = addToVec2(vec2(floor(gl_FragCoord.x), floor(gl_FragCoord.y)), -1.0, TEXTURE_WIDTH);
 
 	// pull previous coordinates and remove bit value
-	vec4 previousTexel = texture2D(u_scanned, addToVec2(vec2(gl_FragCoord.xy), -1.0, TEXTURE_WIDTH) / TEXTURE_WIDTH);
+	vec4 previousTexel = texture2D(u_scanned, vec2(previousFragCoord.x + 0.5, previousFragCoord.y + 0.5) / TEXTURE_WIDTH);
 	previousTexel.r = clearMSB(previousTexel.r);
-	vec2 previousCoord = vec2(vec2ToInt16(previousTexel.rg), vec2ToInt16(previousTexel.ba));
+	vec2 previousValue = vec2(vec2ToUint16(previousTexel.rg), vec2ToUint16(previousTexel.ba));
 
 	// pull last coordinates and remove bit value
 	vec4 lastTexel = texture2D(u_scanned, vec2(TEXTURE_WIDTH - 0.5, TEXTURE_WIDTH - 0.5) / TEXTURE_WIDTH);
 	lastTexel.r = clearMSB(lastTexel.r);
-	vec2 lastCoord = vec2(vec2ToInt16(lastTexel.rg), vec2ToInt16(lastTexel.ba));
+	vec2 lastValue = vec2(vec2ToUint16(lastTexel.rg), vec2ToUint16(lastTexel.ba));
 
 	// create an empty scatterCoord 
 	vec2 scatterCoord = vec2(0.0, 0.0);
 
-	// determine if this is the first texel
-	float isFirstTexel = min(floatEquals(floor(gl_FragCoord.x), 0.0), 
-							 floatEquals(floor(gl_FragCoord.y), 0.0));
+	// gather booleans for upcoming branches
+	float isLeftSide = float(currentBitFlag);
+	float isFirstTexel = floatEquals(floor(gl_FragCoord.x), 0.0) * floatEquals(floor(gl_FragCoord.y), 0.0);
 
-	// if currentBitFlag == 0 && isFirstTexel == 0
-	scatterCoord += floatEquals(float(currentBitFlag), 0.0)
-			      * floatEquals(isFirstTexel, 0.0)
-			      * previousCoord.xy;
-	
-	// if currentBitFlag == 1 && isFirstTexel == 1
-	scatterCoord += floatEquals(float(currentBitFlag), 1.0)
-			      * floatEquals(isFirstTexel, 1.0)
-			      * vec2(floor(gl_FragCoord.x) + lastCoord.x, 
-				         floor(gl_FragCoord.y) + lastCoord.y);
-	
-	// if currentBitFlag == 1 && isFirstTexel == 0
-	scatterCoord += floatEquals(float(currentBitFlag), 1.0)
-			      * floatEquals(isFirstTexel, 0.0)
-			      * vec2(floor(gl_FragCoord.x - previousCoord.x + lastCoord.x), 
-				         floor(gl_FragCoord.y - previousCoord.y + lastCoord.y));
+	// branch based on conditional floats
+	if (isLeftSide == 1.0) {
+		if (isFirstTexel == 0.0) {
+			scatterCoord.x = previousValue.x;
+			scatterCoord.y = previousValue.y;
+		}
+	} else {
+		if (isFirstTexel == 1.0) {
+			scatterCoord.x = floor(gl_FragCoord.x);
+			scatterCoord.y = floor(gl_FragCoord.y);
+			float combinedX = mod(scatterCoord.x + previousValue.x, TEXTURE_WIDTH);
+			float combinedY = scatterCoord.y + previousValue.y;
+			combinedY += floatGreaterThanOrEqual(scatterCoord.x + previousValue.x, TEXTURE_WIDTH);
+			scatterCoord.x = combinedX;
+			scatterCoord.y = combinedY;
+		} else {
+			scatterCoord.x = floor(gl_FragCoord.x);
+			scatterCoord.y = floor(gl_FragCoord.y);
+			float subtractedX = mod(scatterCoord.x - previousValue.x, TEXTURE_WIDTH);
+			float subtractedY = scatterCoord.y - previousValue.y;
+			subtractedY -= floatLessThan(scatterCoord.x - previousValue.x, 0.0);
+			scatterCoord.x = subtractedX;
+			scatterCoord.y = subtractedY;
+			float combinedX = mod(scatterCoord.x + lastValue.x, TEXTURE_WIDTH);
+			float combinedY = scatterCoord.y + lastValue.y;
+			combinedY += floatGreaterThanOrEqual(scatterCoord.x + lastValue.x, TEXTURE_WIDTH);
+			scatterCoord.x = combinedX;
+			scatterCoord.y = combinedY;
+		}
+	}
 
 	// output scatter coordinates
-	gl_FragColor = vec4(int16ToVec2(scatterCoord.x), int16ToVec2(scatterCoord.y));
+	gl_FragColor = vec4(uint16ToVec2(scatterCoord.x), uint16ToVec2(scatterCoord.y));
 }
