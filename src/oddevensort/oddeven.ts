@@ -3,10 +3,31 @@ import { uniformInt32Range } from "../lib/notrandom";
 
 export function oddEvenSort(textureWidth: number) {
 	const oddEvenSort = require("fs").readFileSync("src/oddevensort/032_oddEvenSort.frag", "utf8");
+
+	const searchAndReplace = {
+		"const float TEXTURE_WIDTH = 1.0;": `const float TEXTURE_WIDTH = ${textureWidth}.0;`,
+		"float round(float f);": gpu.functionStrings.round,
+		"float floatEquals(float f1, float f2);": gpu.functionStrings.floatEquals,
+		"float floatNotEquals(float f1, float f2); ": gpu.functionStrings.floatNotEquals,
+		"float floatLessThan(float f1, float f2);": gpu.functionStrings.floatLessThan,
+		"float floatGreaterThan(float f1, float f2);": gpu.functionStrings.floatGreaterThan,
+		"float floatLessThanOrEqual(float f1, float f2);": gpu.functionStrings.floatLessThanOrEqual,
+		"float floatGreaterThanOrEqual(float f1, float f2);": gpu.functionStrings.floatGreaterThanOrEqual,
+		"float vec2ToInt16(vec2 v);": gpu.functionStrings.vec2ToInt16,
+		"vec2 int16ToVec2(float f);": gpu.functionStrings.int16ToVec2,
+		"void unpackBooleans(float f, inout bool arr[8]);": gpu.functionStrings.unpackBooleans,
+		"float packBooleans(bool arr[8]);": gpu.functionStrings.packBooleans,
+		"vec2 addToVec2(vec2 v, float f, float w);": `
+		vec2 addToVec2(vec2 v, float f, float w) {
+			v.y += floor((v.x + f) / w);
+			v.x = mod(v.x + f, w);
+			return v;
+		}`
+	};
+
 	const indices = new gpu.RenderTarget(textureWidth);
 	const byteSlice = new gpu.RenderTarget(textureWidth);
-	const fragVariables = { textureWidth: `${textureWidth}.0` };
-	const computeShader = new gpu.ComputeShader(oddEvenSort, fragVariables);
+	const computeShader = new gpu.ComputeShader(oddEvenSort, searchAndReplace);
 
 	const bytes = new Uint8Array(textureWidth * textureWidth * 4);
 	for (var i = 0; i < bytes.length; i += 4) {

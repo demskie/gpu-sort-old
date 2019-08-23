@@ -2,12 +2,17 @@ import * as gpu from "gpu-compute";
 
 import { oddEvenSort } from "./oddevensort/oddeven";
 import { bitonicSort } from "./bitonicsort/bitonicsort";
-import { radixSort } from "./radixsort/radixsort";
+import { radixSortTest } from "./radixsort/radixsort";
 
 for (var textureWidth of [256, 512, 1024, 2048, 4096].values()) {
+	if (true) {
+		radixSortTest();
+		break;
+	}
+
 	console.log(`dimensions: ${textureWidth} x ${textureWidth}`);
 
-	radixSort(textureWidth);
+	// radixSort(textureWidth);
 	bitonicSort(textureWidth);
 	oddEvenSort(textureWidth);
 

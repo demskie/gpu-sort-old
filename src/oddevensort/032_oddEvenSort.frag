@@ -1,24 +1,26 @@
+#ifdef GL_ES
 precision mediump float;
 precision mediump int;
 precision mediump sampler2D;
+#endif
 
 uniform sampler2D u_indices;
 uniform sampler2D u_data;
 
 uniform float u_iter;
 
-const float TEXTURE_WIDTH = ${textureWidth};
+const float TEXTURE_WIDTH = 1.0;
 
-float round(float f) { return floor(f + 0.5); }
-float floatEquals(float f1, float f2) { return 1.0 - abs(sign(f1 - f2)); }
-float floatNotEquals(float f1, float f2) { return abs(sign(f1 - f2)); }
-float floatLessThan(float f1, float f2) { return max(sign(f2 - f1), 0.0); }
-float floatGreaterThan(float f1, float f2) { return max(sign(f1 - f2), 0.0); }
-float floatLessThanOrEqual(float f1, float f2) { return 1.0 - floatGreaterThan(f1, f2); }
-float floatGreaterThanOrEqual(float f1, float f2) { return 1.0 - floatLessThan(f1, f2); }
-float vec2ToInt16(vec2 v) { return clamp(floor(floor(v.r * 255.0) * 256.0) + floor(v.g * 255.0) - 32767.0, -32767.0, 32768.0); }
-vec2 int16ToVec2(float f) { f = clamp(f, -32767.0, 32768.0) + 32767.0; return vec2(floor(f / 256.0), f - floor(f / 256.0) * 256.0) / 255.0; }
-vec2 addToVec2(vec2 v, float f, float w) { v.y += floor((v.x + f) / w); v.x = mod(v.x + f, w); return v; }
+float round(float f);
+float floatEquals(float f1, float f2);
+float floatNotEquals(float f1, float f2);
+float floatLessThan(float f1, float f2);
+float floatGreaterThan(float f1, float f2);
+float floatLessThanOrEqual(float f1, float f2);
+float floatGreaterThanOrEqual(float f1, float f2);
+float vec2ToInt16(vec2 v);
+vec2 int16ToVec2(float f);
+vec2 addToVec2(vec2 v, float f, float w);
 
 void main() {
 	// determine if we are comparing with the texel in front of us or behind us
